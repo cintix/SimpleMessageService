@@ -113,11 +113,10 @@ public abstract class Subscriber<T extends Message> {
 
                         if (clientConnection.getInputStream() != null && clientConnection.getInputStream().available() >= Protocol.PROTOCOL_LENGTH) {
                             T readMessage = clientConnection.readMessage();
-                            
-                            if (filterOn != null && !filterOn.contains(readMessage.getType())) {
-                                continue;
+
+                            if (filterOn == null || filterOn.contains(readMessage.getType())) {
+                                onMessage(readMessage);
                             }
-                            onMessage(readMessage);
                         }
 
                         synchronized (messageQueue) {

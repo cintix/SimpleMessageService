@@ -203,7 +203,6 @@ public class Socket extends java.net.Socket {
         int readLength = length;
         byte[] byteArray;
 
-
         if (readLength > 2048) {
             byteArray = new byte[2048];
         } else {
@@ -243,7 +242,7 @@ public class Socket extends java.net.Socket {
      */
     public <T extends Message> T readMessage() throws IOException, ProtocolException {
         Header internal = readHeader();
-        ByteArrayOutputStream byteArrayOutputStream = readMessagePart(internal.getContentLength());
+        ByteArrayOutputStream byteArrayOutputStream = readMessagePart(internal.getContentLength());        
         T message = Protocol.bytesToMessage(byteArrayOutputStream.toByteArray());
         message.setHeader(internal);
         return message;

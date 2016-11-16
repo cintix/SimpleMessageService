@@ -31,7 +31,7 @@ public class Test {
             a.startService();
             b.startService();
             b1.startService();
-            TimeUnit.SECONDS.sleep(10);
+            TimeUnit.SECONDS.sleep(3);
             producer.startService();
 
 //            b2.startService();

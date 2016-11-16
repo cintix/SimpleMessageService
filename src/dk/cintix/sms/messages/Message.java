@@ -13,10 +13,10 @@ import java.util.logging.Logger;
  * @author migo
  */
 public abstract class Message implements Serializable {
-
     private Header header;
     private Date sent = new Date();
     private boolean confirmed;
+    private MessageType type;
 
     public Header getHeader() {
         return header;
@@ -42,6 +42,14 @@ public abstract class Message implements Serializable {
         this.confirmed = confirmed;
     }
 
+    public MessageType getType() {
+        return type;
+    }
+
+    public void setType(MessageType type) {
+        this.type = type;
+    }
+    
     public final Message reply() {
         try {
             Message message = this.getClass().newInstance();
@@ -61,7 +69,7 @@ public abstract class Message implements Serializable {
 
     @Override
     public String toString() {
-        return "Message{" + "header=" + header + ", sent=" + sent + ", confirmed=" + confirmed + '}';
+        return "Message{" + "header=" + header + ", sent=" + sent + ", confirmed=" + confirmed + ", type=" + type + '}';
     }
 
 }

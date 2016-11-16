@@ -65,9 +65,15 @@ public abstract class Producer<T extends Message> {
     }
 
     private boolean broadcastMessageTo(Long receiverID, ByteArrayOutputStream message) {
-        try {
+        try 
+        {
             validateSubscribers();
+            
             synchronized (SUBSCRIBER_MAP) {
+                if (!SUBSCRIBER_MAP.keySet().contains(receiverID)) {
+                    return false;
+                }
+                
                 for (Long id : SUBSCRIBER_MAP.keySet()) {
                     if (receiverID.equals(id)) {
                         SUBSCRIBER_MAP.get(id).sendMessagePart(message);

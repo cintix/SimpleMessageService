@@ -3,12 +3,15 @@
 package dk.cintix.sms;
 
 import dk.cintix.sms.messages.Message;
+import dk.cintix.sms.messages.MessageType;
 import dk.cintix.sms.network.exceptions.ProtocolException;
 import dk.cintix.sms.network.protocol.Protocol;
 import dk.cintix.sms.network.sockets.Socket;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketException;
+import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -22,6 +25,7 @@ public abstract class Subscriber<T extends Message> {
 
     private final Thread boardcastService;
     private volatile boolean running = false;
+    private List<MessageType> filterOn;
     private final String host;
     private final int port;
 
@@ -31,6 +35,17 @@ public abstract class Subscriber<T extends Message> {
         this.host = host;
         this.port = port;
         this.boardcastService = new Thread(new BroadcastService(host, port));
+    }
+
+    public Subscriber(String host, int port, MessageType... filter) {
+        this.host = host;
+        this.port = port;
+        this.boardcastService = new Thread(new BroadcastService(host, port));
+        filterOn = Arrays.asList(filter);
+    }
+
+    public void registereFilter(MessageType... filter) {
+        filterOn = Arrays.asList(filter);
     }
 
     public final void sendMessage(T message) {
@@ -98,6 +113,10 @@ public abstract class Subscriber<T extends Message> {
 
                         if (clientConnection.getInputStream() != null && clientConnection.getInputStream().available() >= Protocol.PROTOCOL_LENGTH) {
                             T readMessage = clientConnection.readMessage();
+                            
+                            if (filterOn != null && !filterOn.contains(readMessage.getType())) {
+                                continue;
+                            }
                             onMessage(readMessage);
                         }
 

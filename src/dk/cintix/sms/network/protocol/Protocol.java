@@ -24,7 +24,7 @@ public class Protocol {
     /**
      * Protocol structure Index
      *
-     * 13 Bytes header
+     * 14 Bytes header
      *
      * 0......... (1 byte ) - VERSION
      * 1,2,3,4... (4 bytes) - UNSIGNED Sender ID

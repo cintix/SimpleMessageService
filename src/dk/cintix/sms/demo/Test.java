@@ -3,6 +3,7 @@
 package dk.cintix.sms.demo;
 
 import dk.cintix.sms.messages.DomainModelA;
+import dk.cintix.sms.messages.MessageType;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
@@ -16,8 +17,8 @@ public class Test {
 
         MyProducer producer = new MyProducer(1122);
         MySubscriber a = new MySubscriber("127.0.0.1", 1122);
-        MySubscriber b = new MySubscriber("127.0.0.1", 1122);
-        MySubscriber b1 = new MySubscriber("127.0.0.1", 1122);
+        MySubscriber b = new MySubscriber("127.0.0.1", 1122, MessageType.PERSON);       
+        MySubscriber b1 = new MySubscriber("127.0.0.1", 1122, MessageType.VIDEO);
 //        MySubscriber b2 = new MySubscriber("127.0.0.1", 1122);
 //        MySubscriber b3 = new MySubscriber("127.0.0.1", 1122);
 //        MySubscriber b4 = new MySubscriber("127.0.0.1", 1122);
@@ -27,12 +28,12 @@ public class Test {
 
         boolean sent = false;
         try {
-            TimeUnit.SECONDS.sleep(10);
-            producer.startService();
-
             a.startService();
             b.startService();
             b1.startService();
+            TimeUnit.SECONDS.sleep(10);
+            producer.startService();
+
 //            b2.startService();
 //            b3.startService();
 //            b4.startService();
@@ -47,6 +48,7 @@ public class Test {
                 if (!sent) {
                     DomainModelA message = new DomainModelA();
                     message.setId((int) counter);
+                    message.setType(MessageType.VIDEO);
                     boolean broadcastMessage = producer.broadcastMessage(message);
                     //System.out.println("Notifing went " + broadcastMessage);
                     //sent = true;

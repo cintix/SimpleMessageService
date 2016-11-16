@@ -4,6 +4,7 @@ package dk.cintix.sms.demo;
 
 import dk.cintix.sms.Subscriber;
 import dk.cintix.sms.messages.DomainModelA;
+import dk.cintix.sms.messages.MessageType;
 
 /**
  *
@@ -15,7 +16,10 @@ public class MySubscriber extends Subscriber<DomainModelA> {
     private int counter = 0;
     public MySubscriber(String host, int port) {
         super(host, port);
-        System.out.println("Im' number " + randomNr);
+    }
+
+    public MySubscriber(String host, int port, MessageType... filter) {
+        super(host, port, filter);
     }
 
     @Override

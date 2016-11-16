@@ -10,6 +10,7 @@ import dk.cintix.sms.network.sockets.ServerSocket;
 import dk.cintix.sms.network.sockets.Socket;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.net.SocketException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -40,7 +41,7 @@ public abstract class Producer<T extends Message> {
     public Producer(int port) throws IOException {
         this.port = port;
         clientService = new Thread(new SubscriberService(port));
-        boardcastService = new Thread(new BroadcastService());        
+        boardcastService = new Thread(new BroadcastService());
     }
 
     public Producer() throws IOException {
@@ -85,7 +86,12 @@ public abstract class Producer<T extends Message> {
             validateSubscribers();
             synchronized (SUBSCRIBER_MAP) {
                 for (Socket socket : SUBSCRIBER_MAP.values()) {
-                    socket.sendMessage(message);
+                    try {
+                        socket.sendMessage(message);
+                    } catch (SocketException socketException) {
+                        System.out.println("disconnecting " + socket.getInetAddress().toString());
+                        socket.close();
+                    }
                 }
             }
         } catch (IOException iOException) {
@@ -94,6 +100,7 @@ public abstract class Producer<T extends Message> {
         }
         return true;
     }
+
     /**
      * Sending message Parts
      *
@@ -106,7 +113,11 @@ public abstract class Producer<T extends Message> {
             validateSubscribers();
             synchronized (SUBSCRIBER_MAP) {
                 for (Socket socket : SUBSCRIBER_MAP.values()) {
-                    socket.sendMessagePart(clientID, message);
+                    try {
+                        socket.sendMessagePart(clientID, message);
+                    } catch (SocketException socketException) {
+                        socket.close();
+                    }
                 }
             }
         } catch (IOException iOException) {
@@ -114,6 +125,7 @@ public abstract class Producer<T extends Message> {
         }
         return true;
     }
+
     /**
      * Sending message Parts
      *
@@ -126,7 +138,11 @@ public abstract class Producer<T extends Message> {
             validateSubscribers();
             synchronized (SUBSCRIBER_MAP) {
                 for (Socket socket : SUBSCRIBER_MAP.values()) {
-                    socket.sendMessagePart(message);
+                    try {
+                        socket.sendMessagePart(message);
+                    } catch (SocketException socketException) {
+                        socket.close();
+                    }
                 }
             }
         } catch (IOException iOException) {
@@ -184,26 +200,30 @@ public abstract class Producer<T extends Message> {
     private class SubscriberService implements Runnable {
 
         private final int port;
-        private final ServerSocket serverSocket;
+        private ServerSocket serverSocket;
 
         public SubscriberService(int port) throws IOException {
             this.port = port;
-            this.serverSocket = new ServerSocket(port);            
-            System.out.println("Producer is now listing on port " + port);
         }
 
         @Override
         public void run() {
-            while (running) {
-                try {
-                    Socket client = serverSocket.accept();
-                    synchronized (SUBSCRIBER_MAP) {
-                        SUBSCRIBER_MAP.put(client.getClientID(), client);
-                    }
+            try {
+                this.serverSocket = new ServerSocket(port);
+                System.out.println("-------------------- Producer is now listing on port " + port);
+                while (running) {
+                    try {
+                        Socket client = serverSocket.accept();
+                        synchronized (SUBSCRIBER_MAP) {
+                            SUBSCRIBER_MAP.put(client.getClientID(), client);
+                        }
 
-                } catch (IOException ex) {
-                    Logger.getLogger(Producer.class.getName()).log(Level.SEVERE, null, ex);
+                    } catch (IOException ex) {
+                        Logger.getLogger(Producer.class.getName()).log(Level.SEVERE, null, ex);
+                    }
                 }
+            } catch (IOException ex) {
+                Logger.getLogger(Producer.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
 

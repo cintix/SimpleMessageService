@@ -60,6 +60,10 @@ public class Socket extends java.net.Socket {
         super(ia, i, bln);
     }
 
+    public Socket() {
+        super();
+    }
+
     public void sendHeader(Header _header) throws IOException {
         getOutputStream().write(Protocol.createHeader(_header));
         //getOutputStream().flush();

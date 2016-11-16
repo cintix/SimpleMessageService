@@ -27,8 +27,8 @@ public class Test {
 
         boolean sent = false;
         try {
+            TimeUnit.SECONDS.sleep(10);
             producer.startService();
-            TimeUnit.SECONDS.sleep(1);
 
             a.startService();
             b.startService();
@@ -43,7 +43,7 @@ public class Test {
             long counter = 1;
             while (1 == 1) {
                 //System.out.println("...");
-                TimeUnit.MILLISECONDS.sleep(100);
+                TimeUnit.MILLISECONDS.sleep(1300);
                 if (!sent) {
                     DomainModelA message = new DomainModelA();
                     message.setId((int) counter);

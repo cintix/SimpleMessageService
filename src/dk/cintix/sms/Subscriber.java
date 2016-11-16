@@ -7,6 +7,8 @@ import dk.cintix.sms.network.exceptions.ProtocolException;
 import dk.cintix.sms.network.protocol.Protocol;
 import dk.cintix.sms.network.sockets.Socket;
 import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.SocketException;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -65,6 +67,7 @@ public abstract class Subscriber<T extends Message> {
      */
     private class BroadcastService implements Runnable {
 
+        public final int CONNECTION_TIMEOUT = 2000;
         private final String host;
         private final int port;
 
@@ -75,17 +78,30 @@ public abstract class Subscriber<T extends Message> {
 
         @Override
         public void run() {
+            Socket clientConnection = new Socket();
             try {
-                Socket clientConnection = new Socket(host, port);
-                while (running) {
-                    try {
+                System.out.println("Starting subscriber broadcasting service");
+                clientConnection.connect(new InetSocketAddress(host, port), CONNECTION_TIMEOUT);
+                clientConnection.setSoTimeout(CONNECTION_TIMEOUT);
+            } catch (IOException ex) {
+            }
+
+            while (running) {
+                try {
+
+                    if (clientConnection.isClosed() || !clientConnection.isConnected()) {
+                        System.out.println("Trying to reconnect...");
+                        clientConnection = new Socket();
+                        clientConnection.connect(new InetSocketAddress(host, port), CONNECTION_TIMEOUT);
+                        clientConnection.setSoTimeout(CONNECTION_TIMEOUT);
+                    } else {
 
                         if (clientConnection.getInputStream() != null && clientConnection.getInputStream().available() >= Protocol.PROTOCOL_LENGTH) {
                             T readMessage = clientConnection.readMessage();
                             onMessage(readMessage);
                         }
 
-                        synchronized (messageQueue) {                            
+                        synchronized (messageQueue) {
                             if (messageQueue.size() > 0) {
                                 for (T message : messageQueue) {
                                     clientConnection.sendMessage(message);
@@ -93,15 +109,20 @@ public abstract class Subscriber<T extends Message> {
                                 messageQueue.clear();
                             }
                         }
-
-                        TimeUnit.MILLISECONDS.sleep(100);
-                    } catch (ProtocolException | InterruptedException ex) {
-                        ex.printStackTrace();
-                        Logger.getLogger(Producer.class.getName()).log(Level.SEVERE, null, ex);
                     }
+                    TimeUnit.MILLISECONDS.sleep(100);
+
+                } catch (SocketException socketException) {
+                    try {
+                        TimeUnit.MILLISECONDS.sleep(2000);
+                    } catch (InterruptedException ex) {
+                        Logger.getLogger(Subscriber.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                } catch (InterruptedException ex) {
+                    Logger.getLogger(Producer.class.getName()).log(Level.SEVERE, null, ex);
+                } catch (IOException | ProtocolException ex) {
+                    Logger.getLogger(Subscriber.class.getName()).log(Level.SEVERE, null, ex);
                 }
-            } catch (IOException ex) {
-                Logger.getLogger(Subscriber.class.getName()).log(Level.SEVERE, null, ex);
             }
 
         }

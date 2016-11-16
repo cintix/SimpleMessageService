@@ -28,7 +28,7 @@ public class MySubscriber extends Subscriber<DomainModelA> {
             domainModelA.setTitle("Thank you jerkoff");
             sendMessage(domainModelA);
         }
-        //System.out.println("incoming textmessage " + message.toString()+ " created " + message.getSent() + " - " + this.toString());
+        System.out.println("incoming textmessage " + message.toString()+ " created " + message.getSent() + " - " + this.toString());
     }
 
 }

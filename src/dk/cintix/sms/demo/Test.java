@@ -42,9 +42,9 @@ public class Test {
 //            b7.startService();
             
             long counter = 1;
-            while (1 == 1) {
+            while (1 == 1 && counter < 5000)  {
                 //System.out.println("...");
-                TimeUnit.MILLISECONDS.sleep(1300);
+               // TimeUnit.MILLISECONDS.sleep(1300);
                 if (!sent) {
                     DomainModelA message = new DomainModelA();
                     message.setId((int) counter);

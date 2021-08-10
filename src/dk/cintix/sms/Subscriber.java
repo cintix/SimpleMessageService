@@ -82,7 +82,7 @@ public abstract class Subscriber<T extends Message> {
      */
     private class BroadcastService implements Runnable {
 
-        public final int CONNECTION_TIMEOUT = 2000;
+        public final int CONNECTION_TIMEOUT = 15000;
         private final String host;
         private final int port;
 
@@ -105,7 +105,6 @@ public abstract class Subscriber<T extends Message> {
                 try {
 
                     if (clientConnection.isClosed() || !clientConnection.isConnected()) {
-                        System.out.println("Trying to reconnect...");
                         clientConnection = new Socket();
                         clientConnection.connect(new InetSocketAddress(host, port), CONNECTION_TIMEOUT);
                         clientConnection.setSoTimeout(CONNECTION_TIMEOUT);

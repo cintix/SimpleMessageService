@@ -17,8 +17,8 @@ public class Test {
 
         MyProducer producer = new MyProducer(1122);
         MySubscriber a = new MySubscriber("127.0.0.1", 1122);
-        MySubscriber b = new MySubscriber("127.0.0.1", 1122, MessageType.PERSON);       
-        MySubscriber b1 = new MySubscriber("127.0.0.1", 1122, MessageType.VIDEO);
+        MySubscriber b = new MySubscriber("127.0.0.1", 1122, MessageType.PROGRAM);       
+        MySubscriber b1 = new MySubscriber("127.0.0.1", 1122, MessageType.IMAGE);
 //        MySubscriber b2 = new MySubscriber("127.0.0.1", 1122);
 //        MySubscriber b3 = new MySubscriber("127.0.0.1", 1122);
 //        MySubscriber b4 = new MySubscriber("127.0.0.1", 1122);
@@ -48,7 +48,7 @@ public class Test {
                 if (!sent) {
                     DomainModelA message = new DomainModelA();
                     message.setId((int) counter);
-                    message.setType(MessageType.VIDEO);
+                    message.setType(MessageType.PROGRAM);
                     boolean broadcastMessage = producer.broadcastMessage(message);
                     //System.out.println("Notifing went " + broadcastMessage);
                     //sent = true;

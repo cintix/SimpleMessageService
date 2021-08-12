@@ -16,7 +16,7 @@ public abstract class Message implements Serializable {
     private Header header;
     private Date sent = new Date();
     private boolean confirmed;
-    private MessageType type;
+    private int type;
 
     public Header getHeader() {
         return header;
@@ -42,11 +42,11 @@ public abstract class Message implements Serializable {
         this.confirmed = confirmed;
     }
 
-    public MessageType getType() {
+    public int getType() {
         return type;
     }
 
-    public void setType(MessageType type) {
+    public void setType(int type) {
         this.type = type;
     }
     

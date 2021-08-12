@@ -3,16 +3,20 @@
 package dk.cintix.sms;
 
 import dk.cintix.sms.messages.Message;
+import dk.cintix.sms.messages.TransactionItem;
 import dk.cintix.sms.network.exceptions.ProtocolException;
 import dk.cintix.sms.network.protocol.Header;
 import dk.cintix.sms.network.protocol.Protocol;
 import dk.cintix.sms.network.sockets.ServerSocket;
 import dk.cintix.sms.network.sockets.Socket;
+import dk.cintix.sms.network.sockets.TransactionConnection;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.SocketException;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -21,10 +25,14 @@ import java.util.logging.Logger;
 /**
  *
  * @author migo
+ * @param <T>
  */
 public abstract class Producer<T extends Message> {
 
-    private static final Map<Long, dk.cintix.sms.network.sockets.Socket> SUBSCRIBER_MAP = new HashMap<>();
+    public static final int MAX_BACKLOG_SIZE = 25000;
+    private static final List<TransactionItem> BACKLOG = new LinkedList<>();
+    private static final Map<Long, TransactionConnection> SUBSCRIBER_MAP = new HashMap<>();
+    private static long latestTransmissionId = 0L;
     private final Thread boardcastService;
     private final Thread clientService;
     private int port = 65656;
@@ -65,18 +73,18 @@ public abstract class Producer<T extends Message> {
     }
 
     private boolean broadcastMessageTo(Long receiverID, ByteArrayOutputStream message) {
-        try 
-        {
+        try {
             validateSubscribers();
-            
+
             synchronized (SUBSCRIBER_MAP) {
                 if (!SUBSCRIBER_MAP.keySet().contains(receiverID)) {
                     return false;
                 }
-                
+
                 for (Long id : SUBSCRIBER_MAP.keySet()) {
                     if (receiverID.equals(id)) {
-                        SUBSCRIBER_MAP.get(id).sendMessagePart(message);
+                        TransactionConnection transaction = SUBSCRIBER_MAP.get(id);
+                        transaction.socket().sendMessagePart(message);
                         break;
                     }
                 }
@@ -89,14 +97,25 @@ public abstract class Producer<T extends Message> {
 
     public final boolean broadcastMessage(T message) {
         try {
+
+            if (message != null) {
+                addMessageToBackLog(message);
+            }
+
             validateSubscribers();
             synchronized (SUBSCRIBER_MAP) {
-                for (Socket socket : SUBSCRIBER_MAP.values()) {
+                for (TransactionConnection transaction : SUBSCRIBER_MAP.values()) {
                     try {
-                        socket.sendMessage(message);
+                        
+                        while (transaction.getLastTransaction() < latestTransmissionId) {
+                            TransactionItem currentMessage = getCurrentTransactionFromClient(transaction);
+                            transaction.socket().sendMessage(currentMessage.item());
+                            transaction.transaction(currentMessage.getID());
+                        }
+
                     } catch (SocketException socketException) {
-                        System.out.println("disconnecting " + socket.getInetAddress().toString());
-                        socket.close();
+                        System.out.println("disconnecting " + transaction.socket().getInetAddress().toString());
+                        transaction.socket().close();
                     }
                 }
             }
@@ -118,11 +137,11 @@ public abstract class Producer<T extends Message> {
         try {
             validateSubscribers();
             synchronized (SUBSCRIBER_MAP) {
-                for (Socket socket : SUBSCRIBER_MAP.values()) {
+                for (TransactionConnection transaction : SUBSCRIBER_MAP.values()) {
                     try {
-                        socket.sendMessagePart(clientID, message);
+                        transaction.socket().sendMessagePart(clientID, message);
                     } catch (SocketException socketException) {
-                        socket.close();
+                        transaction.socket().close();
                     }
                 }
             }
@@ -143,11 +162,11 @@ public abstract class Producer<T extends Message> {
         try {
             validateSubscribers();
             synchronized (SUBSCRIBER_MAP) {
-                for (Socket socket : SUBSCRIBER_MAP.values()) {
+                for (TransactionConnection transaction : SUBSCRIBER_MAP.values()) {
                     try {
-                        socket.sendMessagePart(message);
+                        transaction.socket().sendMessagePart(message);
                     } catch (SocketException socketException) {
-                        socket.close();
+                        transaction.socket().close();
                     }
                 }
             }
@@ -155,6 +174,46 @@ public abstract class Producer<T extends Message> {
             return false;
         }
         return true;
+    }
+
+    /**
+     *
+     * @param <T>
+     * @param obj
+     */
+    private void addMessageToBackLog(T obj) {
+        if (BACKLOG.size() > MAX_BACKLOG_SIZE) {
+            BACKLOG.remove(MAX_BACKLOG_SIZE - 1);
+        }
+        TransactionItem transactionItem = new TransactionItem(obj);
+        BACKLOG.add(0, transactionItem);
+        latestTransmissionId = transactionItem.getID();
+    }
+
+    /**
+     *
+     * @param TransactionItem
+     * @param connection
+     * @return
+     */
+    private TransactionItem getCurrentTransactionFromClient(TransactionConnection connection) {
+        long lastIdSent = connection.getLastTransaction();
+        int currentIndex = -1;
+        if (!BACKLOG.isEmpty()) {
+            for (int index = 0; index < BACKLOG.size(); index++) {
+                if (BACKLOG.get(index).getID() > lastIdSent) {
+                    currentIndex = index;
+                } else {
+                    break;
+                }
+            }
+        }
+
+        if (currentIndex > -1) {
+            return BACKLOG.get(currentIndex);
+        }
+
+        return null;
     }
 
     /**
@@ -171,8 +230,8 @@ public abstract class Producer<T extends Message> {
                     requestList = new HashSet<>();
                     synchronized (SUBSCRIBER_MAP) {
                         for (Long id : SUBSCRIBER_MAP.keySet()) {
-                            Socket clientConnection = SUBSCRIBER_MAP.get(id);
-                            if (clientConnection.getInputStream() != null && clientConnection.getInputStream().available() >= Protocol.PROTOCOL_LENGTH) {
+                            TransactionConnection transaction = SUBSCRIBER_MAP.get(id);
+                            if (transaction.socket().getInputStream() != null && transaction.socket().getInputStream().available() >= Protocol.PROTOCOL_LENGTH) {
                                 requestList.add(id);
                             }
                         }
@@ -180,9 +239,9 @@ public abstract class Producer<T extends Message> {
                     // loop clients having requests
                     for (Long id : requestList) {
                         if (SUBSCRIBER_MAP.containsKey(id)) {
-                            Socket socket = SUBSCRIBER_MAP.get(id);
-                            Header header = socket.readHeader();
-                            ByteArrayOutputStream messagePart = socket.readMessagePart(header.getContentLength());
+                            TransactionConnection transaction = SUBSCRIBER_MAP.get(id);
+                            Header header = transaction.socket().readHeader();
+                            ByteArrayOutputStream messagePart = transaction.socket().readMessagePart(header.getContentLength());
 
                             if (header.getReceiverID() > 0) {
                                 broadcastMessageTo(header.getReceiverID(), messagePart);
@@ -221,7 +280,7 @@ public abstract class Producer<T extends Message> {
                     try {
                         Socket client = serverSocket.accept();
                         synchronized (SUBSCRIBER_MAP) {
-                            SUBSCRIBER_MAP.put(client.getClientID(), client);
+                            SUBSCRIBER_MAP.put(client.getClientID(), new TransactionConnection(client));
                         }
 
                     } catch (IOException ex) {
@@ -239,7 +298,7 @@ public abstract class Producer<T extends Message> {
         synchronized (SUBSCRIBER_MAP) {
             HashSet<Long> itemsToRemove = new HashSet<>();
             for (Long id : SUBSCRIBER_MAP.keySet()) {
-                if (SUBSCRIBER_MAP.get(id) == null || SUBSCRIBER_MAP.get(id).isClosed() || !SUBSCRIBER_MAP.get(id).isConnected()) {
+                if (SUBSCRIBER_MAP.get(id) == null || SUBSCRIBER_MAP.get(id).socket().isClosed() || !SUBSCRIBER_MAP.get(id).socket().isConnected()) {
                     itemsToRemove.add(id);
                 }
             }

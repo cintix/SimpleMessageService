@@ -3,7 +3,6 @@
 package dk.cintix.sms;
 
 import dk.cintix.sms.messages.Message;
-import dk.cintix.sms.messages.MessageType;
 import dk.cintix.sms.network.exceptions.ProtocolException;
 import dk.cintix.sms.network.protocol.Protocol;
 import dk.cintix.sms.network.sockets.Socket;
@@ -25,7 +24,7 @@ public abstract class Subscriber<T extends Message> {
 
     private final Thread boardcastService;
     private volatile boolean running = false;
-    private List<MessageType> filterOn;
+    private List<Integer> filterOn;
     private final String host;
     private final int port;
 
@@ -37,14 +36,14 @@ public abstract class Subscriber<T extends Message> {
         this.boardcastService = new Thread(new BroadcastService(host, port));
     }
 
-    public Subscriber(String host, int port, MessageType... filter) {
+    public Subscriber(String host, int port, Integer... filter) {
         this.host = host;
         this.port = port;
         this.boardcastService = new Thread(new BroadcastService(host, port));
         filterOn = Arrays.asList(filter);
     }
 
-    public void registereFilter(MessageType... filter) {
+    public void registereFilter(Integer... filter) {
         filterOn = Arrays.asList(filter);
     }
 

@@ -3,7 +3,6 @@
 package dk.cintix.sms.demo;
 
 import dk.cintix.sms.messages.DomainModelA;
-import dk.cintix.sms.messages.MessageType;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 

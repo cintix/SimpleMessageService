@@ -4,7 +4,6 @@ package dk.cintix.sms.demo;
 
 import dk.cintix.sms.Subscriber;
 import dk.cintix.sms.messages.DomainModelA;
-import dk.cintix.sms.messages.MessageType;
 
 /**
  *
@@ -18,7 +17,7 @@ public class MySubscriber extends Subscriber<DomainModelA> {
         super(host, port);
     }
 
-    public MySubscriber(String host, int port, MessageType... filter) {
+    public MySubscriber(String host, int port, Integer... filter) {
         super(host, port, filter);
     }
 

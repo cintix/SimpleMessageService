@@ -18,7 +18,7 @@ public class DomainModelB extends Message {
         this.entity = entity;
     }
 
-    public DomainModelB(String entity, MessageType type) {
+    public DomainModelB(String entity, int type) {
         this.entity = entity;
         setType(type);
     }

@@ -6,6 +6,8 @@ import dk.cintix.sms.Producer;
 import dk.cintix.sms.Subscriber;
 import dk.cintix.sms.io.Binary;
 import dk.cintix.sms.messages.Message;
+import dk.cintix.sms.messages.QueueModel;
+import dk.cintix.sms.messages.TextMessage;
 import dk.cintix.sms.network.exceptions.ProtocolException;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -21,6 +23,9 @@ import java.util.logging.Logger;
  */
 public class Protocol {
 
+    private TextMessage textMessage;
+    private QueueModel queueModel;
+    
     /**
      * Protocol structure Index
      *

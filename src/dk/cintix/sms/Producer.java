@@ -106,9 +106,12 @@ public abstract class Producer<T extends Message> {
             synchronized (SUBSCRIBER_MAP) {
                 for (TransactionConnection transaction : SUBSCRIBER_MAP.values()) {
                     try {
-                        
+                        System.out.println(transaction.socket().getLocalSocketAddress().toString());
+                        System.out.println("transaction.getLastTransaction() " + transaction.getLastTransaction());
+                        System.out.println("latestTransmissionId " + latestTransmissionId);
                         while (transaction.getLastTransaction() < latestTransmissionId) {
                             TransactionItem currentMessage = getCurrentTransactionFromClient(transaction);
+                            System.out.println("currentMessage : " + currentMessage.item());
                             transaction.socket().sendMessage(currentMessage.item());
                             transaction.transaction(currentMessage.getID());
                         }
@@ -188,6 +191,7 @@ public abstract class Producer<T extends Message> {
         TransactionItem transactionItem = new TransactionItem(obj);
         BACKLOG.add(0, transactionItem);
         latestTransmissionId = transactionItem.getID();
+        System.out.println(BACKLOG.size());
     }
 
     /**
@@ -281,6 +285,7 @@ public abstract class Producer<T extends Message> {
                         Socket client = serverSocket.accept();
                         synchronized (SUBSCRIBER_MAP) {
                             SUBSCRIBER_MAP.put(client.getClientID(), new TransactionConnection(client));
+                            broadcastMessage(null);
                         }
 
                     } catch (IOException ex) {

@@ -106,13 +106,11 @@ public abstract class Producer<T extends Message> {
             synchronized (SUBSCRIBER_MAP) {
                 for (TransactionConnection transaction : SUBSCRIBER_MAP.values()) {
                     try {
-                        System.out.println(transaction.socket().getLocalSocketAddress().toString());
                         while (transaction.getLastTransaction() < latestTransmissionId) {
                             TransactionItem currentMessage = getCurrentTransactionFromClient(transaction);
                             transaction.socket().sendMessage(currentMessage.item());
                             transaction.transaction(currentMessage.getID());
                         }
-
                     } catch (SocketException socketException) {
                         System.out.println("disconnecting " + transaction.socket().getInetAddress().toString());
                         transaction.socket().close();

@@ -19,6 +19,7 @@ import java.util.logging.Logger;
 /**
  *
  * @author migo
+ * @param <T>
  */
 public abstract class Subscriber<T extends Message> {
 
@@ -81,7 +82,7 @@ public abstract class Subscriber<T extends Message> {
      */
     private class BroadcastService implements Runnable {
 
-        public final int CONNECTION_TIMEOUT = 15000;
+        public final int CONNECTION_TIMEOUT = 2000;
         private final String host;
         private final int port;
 
@@ -126,17 +127,13 @@ public abstract class Subscriber<T extends Message> {
                             }
                         }
                     }
-                    TimeUnit.MILLISECONDS.sleep(100);
-
                 } catch (SocketException socketException) {
                     try {
                         TimeUnit.MILLISECONDS.sleep(2000);
                     } catch (InterruptedException ex) {
                         Logger.getLogger(Subscriber.class.getName()).log(Level.SEVERE, null, ex);
                     }
-                } catch (InterruptedException ex) {
-                    Logger.getLogger(Producer.class.getName()).log(Level.SEVERE, null, ex);
-                } catch (IOException | ProtocolException ex) {
+                } catch (ProtocolException | IOException ex) {
                     Logger.getLogger(Subscriber.class.getName()).log(Level.SEVERE, null, ex);
                 }
             }

@@ -98,6 +98,10 @@ public abstract class Subscriber<T extends Message> {
                 System.out.println("Starting subscriber broadcasting service");
                 clientConnection.connect(new InetSocketAddress(host, port), CONNECTION_TIMEOUT);
                 clientConnection.setSoTimeout(CONNECTION_TIMEOUT);
+                clientConnection.setKeepAlive(true);
+                clientConnection.setTcpNoDelay(true);
+                clientConnection.setPerformancePreferences(0, 1, 0);
+                clientConnection.setSendBufferSize(2048);                
             } catch (IOException ex) {
             }
 
@@ -108,8 +112,7 @@ public abstract class Subscriber<T extends Message> {
                         clientConnection = new Socket();
                         clientConnection.connect(new InetSocketAddress(host, port), CONNECTION_TIMEOUT);
                         clientConnection.setSoTimeout(CONNECTION_TIMEOUT);
-                    } else {
-
+                    } else {                        
                         if (clientConnection.getInputStream() != null && clientConnection.getInputStream().available() >= Protocol.PROTOCOL_LENGTH) {
                             T readMessage = clientConnection.readMessage();
 
@@ -117,7 +120,6 @@ public abstract class Subscriber<T extends Message> {
                                 onMessage(readMessage);
                             }
                         }
-
                         synchronized (messageQueue) {
                             if (messageQueue.size() > 0) {
                                 for (T message : messageQueue) {
@@ -125,6 +127,11 @@ public abstract class Subscriber<T extends Message> {
                                 }
                                 messageQueue.clear();
                             }
+                        }
+                        
+                        try {
+                            TimeUnit.NANOSECONDS.sleep(100);
+                        } catch (Exception exception) {
                         }
                     }
                 } catch (SocketException socketException) {

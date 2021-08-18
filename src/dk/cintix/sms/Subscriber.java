@@ -101,7 +101,7 @@ public abstract class Subscriber<T extends Message> {
                 clientConnection.setKeepAlive(true);
                 clientConnection.setTcpNoDelay(true);
                 clientConnection.setPerformancePreferences(0, 1, 0);
-                clientConnection.setSendBufferSize(2048);                
+                clientConnection.setSendBufferSize(2048);
             } catch (IOException ex) {
             }
 
@@ -112,12 +112,17 @@ public abstract class Subscriber<T extends Message> {
                         clientConnection = new Socket();
                         clientConnection.connect(new InetSocketAddress(host, port), CONNECTION_TIMEOUT);
                         clientConnection.setSoTimeout(CONNECTION_TIMEOUT);
-                    } else {                        
+                    } else {
                         if (clientConnection.getInputStream() != null && clientConnection.getInputStream().available() >= Protocol.PROTOCOL_LENGTH) {
                             T readMessage = clientConnection.readMessage();
 
                             if (filterOn == null || filterOn.contains(readMessage.getType())) {
                                 onMessage(readMessage);
+                            }
+                        } else {
+                            try {
+                                TimeUnit.NANOSECONDS.sleep(100);
+                            } catch (Exception exception) {
                             }
                         }
                         synchronized (messageQueue) {
@@ -128,11 +133,7 @@ public abstract class Subscriber<T extends Message> {
                                 messageQueue.clear();
                             }
                         }
-                        
-                        try {
-                            TimeUnit.NANOSECONDS.sleep(100);
-                        } catch (Exception exception) {
-                        }
+
                     }
                 } catch (SocketException socketException) {
                     try {
